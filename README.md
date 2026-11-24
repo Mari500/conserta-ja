@@ -1,21 +1,31 @@
 # Conserta Já 🛠️
 
-Protótipo de jogo mobile de **mini-jogos de reparo** (*repair minigames*): escolha a ferramenta certa, na ordem certa, antes que o estrago aumente.
+Jogo mobile de **mini-jogos de reparo** (*repair minigames*): escolha a ferramenta certa, na ordem certa, antes que o estrago aumente.
+
+▶ **Jogar:** https://mari500.github.io/conserta-ja (após ativar o GitHub Pages)
 
 ## Fases
-1. **Janela na tempestade** — a chuva entra pela janela quebrada (medidor: água no chão)
-2. **Cano estourado** — vazamento no escuro, debaixo da pia (medidor: alagamento)
-3. **Tomada em curto** — faíscas e cheiro de queimado (medidor: risco de incêndio)
+| # | Fase | Etapas | Dificuldade | Medidor |
+|---|------|--------|-------------|---------|
+| 1 | Janela na tempestade | 5 | Fácil | Água no chão |
+| 2 | Cano estourado | 5 | Fácil | Alagamento |
+| 3 | Tomada em curto | 5 | Médio | Risco de incêndio |
+| 4 | Goteira no telhado | 6 | Médio | Infiltração |
+| 5 | Pneu furado na estrada | 8 | Difícil | Perigo na pista |
+| 6 | Chuveiro queimado | 8 | Difícil | Fila do banho |
 
 ## Mecânicas
 - **Escolha de ferramenta**: o objetivo é descrito, a ferramenta não. Ferramenta errada = +8 de dano.
-- **Pressão de tempo**: o medidor de dano sobe continuamente; cada etapa concluída desacelera o estrago.
-- **Toques repetidos**: algumas etapas exigem tocar várias vezes na cena (apertar, vedar, desparafusar).
+- **Erros perigosos**: ferramentas fora de hora causam +25 (ex.: mexer na tomada sem desligar o disjuntor, ligar o chuveiro sem água).
+- **Toques repetidos** e **segurar o dedo**: algumas etapas exigem trabalho na cena (apertar, desparafusar, levantar o carro, impermeabilizar).
+- **Pressão de tempo**: o medidor de dano sobe continuamente; etapas concluídas desaceleram o estrago.
 - **QTE**: botões de reflexo surgem de repente — toque antes do anel fechar ou leve +12 de dano.
-- **Erros perigosos**: mexer na tomada sem desligar o disjuntor dá choque (+25).
-- **Estrelas (1–3)** por tempo, erros e reflexos perdidos; recorde salvo no navegador.
+- **Tempo para ler**: 4 s de pausa para observar a cena no início e 1,5 s de respiro após cada etapa.
+- **Dica**: após 8 s parada numa etapa, a ferramenta certa começa a piscar.
+- **Estrelas (1–3)** por dano, erros e reflexos perdidos; recordes salvos no navegador.
 
-## Como jogar
-Abra o `index.html` no navegador (feito para celular). Não precisa de instalação nem dependências.
+## Tecnologia
+Um único `index.html` (HTML + CSS + JavaScript puro). Cenas e ícones em SVG feito à mão, som com Web Audio API e vibração no celular. Sem dependências.
 
-Para jogar online, ative o **GitHub Pages**: *Settings → Pages → Branch: `main` / root*.
+## Publicar no GitHub Pages
+*Settings → Pages → Deploy from a branch → `main` / `(root)` → Save*
