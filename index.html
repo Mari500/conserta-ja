@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Conserta Já — protótipo de jogo de reparo</title>
+<style>
+:root{--bg:#1d1b2f;--card:#2a2742;--card2:#353152;--ink:#f6f1e7;--muted:#b9b3cf;--acc:#ffb84d;--ok:#5fd39a;--bad:#ff6b6b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.screen{display:none;max-width:460px;margin:0 auto;padding:14px;flex-direction:column;gap:10px;min-height:100vh}
+.screen.on{display:flex}
+h1{margin:8px 0 0;font-size:34px;letter-spacing:-.5px}
+h1 span{color:var(--acc)}
+.sub{color:var(--muted);margin:0 0 6px;font-size:15px;line-height:1.4}
+.lvl{display:flex;align-items:center;gap:12px;background:var(--card);border:2px solid transparent;border-radius:16px;padding:14px;color:var(--ink);font:inherit;text-align:left;cursor:pointer;width:100%}
+.lvl:active{border-color:var(--acc);transform:scale(.98)}
+.lvl .ico{font-size:34px;width:52px;height:52px;display:grid;place-items:center;background:var(--card2);border-radius:12px}
+.lvl b{display:block;font-size:17px}
+.lvl small{color:var(--muted)}
+.lvl .st{margin-left:auto;font-size:15px;letter-spacing:1px;color:var(--acc);white-space:nowrap}
+.how{background:var(--card);border-radius:16px;padding:12px 14px;font-size:14px;color:var(--muted);line-height:1.5}
+.how b{color:var(--ink)}
+.top{display:flex;align-items:center;gap:10px}
+.back{background:var(--card);border:0;color:var(--ink);font-size:18px;width:40px;height:40px;border-radius:12px;cursor:pointer}
+.top .nm{font-weight:700;font-size:16px;flex:1}
+.top .tm{font-variant-numeric:tabular-nums;color:var(--muted)}
+.meter{background:var(--card);border-radius:12px;padding:8px 10px}
+.meter .lb{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:5px}
+.bar{height:12px;background:#15131f;border-radius:8px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;border-radius:8px;background:var(--ok);transition:background .3s}
+.step{background:var(--card);border-radius:14px;padding:10px 12px;min-height:78px}
+.step .n{font-size:12px;color:var(--acc);font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+.step .g{font-size:16px;margin-top:3px;line-height:1.35}
+.step .mash{margin-top:7px;font-size:13px;color:var(--ok)}
+.step .mash .bar i{background:var(--ok);transition:width .1s}
+.scene{position:relative;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:3/2;touch-action:manipulation}
+.scene svg{display:block;width:100%;height:100%}
+.scene.armed{outline:3px dashed var(--ok);outline-offset:-3px;cursor:pointer}
+.scene.shake{animation:shake .35s}
+@keyframes shake{20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.toast{position:absolute;left:50%;top:10px;transform:translateX(-50%);padding:7px 12px;border-radius:10px;font-size:14px;font-weight:700;background:rgba(0,0,0,.75);white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .2s;max-width:94%;overflow:hidden;text-overflow:ellipsis}
+.toast.on{opacity:1}
+.toast.bad{color:var(--bad)}.toast.ok{color:var(--ok)}
+.pop{position:absolute;pointer-events:none;font-weight:800;color:#fff;font-size:18px;animation:pop .5s forwards;text-shadow:0 2px 4px #000}
+@keyframes pop{to{transform:translateY(-30px);opacity:0}}
+.qte{position:absolute;transform:translate(-50%,-50%);border:0;background:var(--bad);color:#fff;font:800 15px system-ui;padding:12px 16px;border-radius:999px;box-shadow:0 0 0 0 rgba(255,107,107,.7);animation:pulse .6s infinite;cursor:pointer;z-index:3;max-width:80%}
+.qte .ring{position:absolute;inset:-10px;border:4px solid #fff;border-radius:999px;animation:shrink linear forwards;pointer-events:none}
+@keyframes pulse{50%{box-shadow:0 0 0 10px rgba(255,107,107,0)}}
+@keyframes shrink{from{inset:-26px;opacity:1}to{inset:0;opacity:.2}}
+.tools{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.tool{background:var(--card);border:2px solid transparent;border-radius:14px;padding:8px 2px 6px;color:var(--ink);font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.tool .e{font-size:28px;line-height:1.1}
+.tool .t{font-size:11px;color:var(--muted);line-height:1.15;text-align:center}
+.tool:active{transform:scale(.94)}
+.tool.sel{border-color:var(--ok);background:#2d4a3f}
+.tool.no{border-color:var(--bad)}
+.modal{position:fixed;inset:0;background:rgba(10,8,20,.78);display:none;align-items:center;justify-content:center;padding:18px;z-index:10}
+.modal.on{display:flex}
+.box{background:var(--card);border-radius:20px;padding:20px;max-width:400px;width:100%;text-align:center}
+.box h2{margin:4px 0 8px;font-size:22px}
+.box p{color:var(--muted);line-height:1.45;margin:0 0 12px}
+.box .big{font-size:46px}
+.stars{font-size:36px;color:var(--acc);letter-spacing:4px;margin:4px 0 10px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.stats div{background:var(--card2);border-radius:12px;padding:8px;font-size:13px;color:var(--muted)}
+.stats b{display:block;color:var(--ink);font-size:17px}
+.btn{display:block;width:100%;border:0;border-radius:14px;padding:14px;font:700 16px system-ui;cursor:pointer;margin-top:8px}
+.btn.p{background:var(--acc);color:#2a1d05}
+.btn.s{background:var(--card2);color:var(--ink)}
+/* animações das cenas */
+.rain line{animation:fall .55s linear infinite}
+@keyframes fall{from{transform:translateY(-25px)}to{transform:translateY(45px)}}
+.drip{animation:drip 1s ease-in infinite}
+@keyframes drip{from{transform:translateY(0);opacity:1}to{transform:translateY(40px);opacity:.2}}
+.spray path{stroke-dasharray:6 7;animation:spray .4s linear infinite}
+@keyframes spray{to{stroke-dashoffset:-13}}
+.spark{animation:blink .25s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.flick{animation:flick 1.3s infinite}
+@keyframes flick{0%,40%,44%,100%{opacity:1}42%{opacity:.2}}
+.smoke circle{animation:rise 2.2s ease-out infinite}
+@keyframes rise{from{transform:translateY(0)}to{transform:translateY(-30px)}}
+</style>
+</head>
+<body>
+
+<section class="screen on" id="menu">
+  <h1>Conserta <span>Já</span></h1>
+  <p class="sub">Escolha a ferramenta certa, na ordem certa, antes que o estrago aumente.</p>
+  <div id="levels" style="display:flex;flex-direction:column;gap:10px"></div>
+  <div class="how">
+    <b>Como jogar</b><br>
+    • Leia o objetivo e toque na <b>ferramenta</b> certa.<br>
+    • Algumas etapas pedem <b>toques repetidos</b> na cena (a borda fica tracejada).<br>
+    • Ferramenta errada = mais dano. Etapas concluídas desaceleram o estrago.<br>
+    • Botões vermelhos surgem de repente: <b>toque antes do anel fechar</b>.
+  </div>
+</section>
+
+<section class="screen" id="game">
+  <div class="top">
+    <button class="back" id="btnBack" aria-label="Voltar">←</button>
+    <div class="nm" id="lvName"></div>
+    <div class="tm" id="time">0:00</div>
+  </div>
+  <div class="meter">
+    <div class="lb"><span id="meterName"></span><span id="meterPct">0%</span></div>
+    <div class="bar"><i id="meterFill"></i></div>
+  </div>
+  <div class="step" id="step"></div>
+  <div class="scene" id="scene">
+    <div id="svgWrap" style="width:100%;height:100%"></div>
+    <div class="toast" id="toast"></div>
+  </div>
+  <div class="tools" id="tools"></div>
+</section>
+
+<div class="modal" id="modal"><div class="box" id="modalBox"></div></div>
+
+<script>
+const TOOLS={
+  balde:['🪣','Balde'],luvas:['🧤','Luvas'],trena:['📏','Trena'],vidro:['🪟','Vidro novo'],
+  silicone:['🧴','Silicone'],martelo:['🔨','Martelo'],fita:['🩹','Fita veda-rosca'],pano:['🧽','Pano'],
+  chave:['🔧','Chave inglesa'],lanterna:['🔦','Lanterna'],fenda:['🪛','Chave de fenda'],
+  disjuntor:['⚡','Disjuntor'],tomada:['🔌','Tomada nova'],serrote:['🪚','Serrote']
+};
+
+const LEVELS=[
+ {id:'janela',ico:'🌧️',name:'Janela na tempestade',meter:'Água no chão',rate:3.2,
+  desc:'Um galho quebrou a janela da sala e a chuva está entrando. Conserte antes que a água tome conta do piso.',
+  tools:['martelo','balde','fita','luvas','pano','trena','silicone','vidro'],
+  qte:['Rajada de vento! Segure!','Galho batendo! Afaste!','Trovão! Não solte!'],
+  lose:'A sala alagou.',
+  steps:[
+   {tool:'balde',goal:'A água está entrando. Contenha a goteira primeiro.',mul:.7},
+   {tool:'luvas',goal:'Retire os cacos presos na moldura sem se cortar.',mash:5},
+   {tool:'trena',goal:'Descubra o tamanho exato do vão.'},
+   {tool:'vidro',goal:'Encaixe o vidro novo na moldura.',mul:.35},
+   {tool:'silicone',goal:'Vede as bordas para não entrar mais água.',mash:6}
+  ],draw:drawJanela,onDmg:(el,d)=>{el.setAttribute('rx',8+d*1.35);el.setAttribute('ry',3+d*.12)}},
+
+ {id:'cano',ico:'🚰',name:'Cano estourado',meter:'Alagamento',rate:4,
+  desc:'Barulho de água debaixo da pia da cozinha. Algo estourou lá embaixo, e está escuro.',
+  tools:['chave','pano','lanterna','fita','balde','martelo','serrote','silicone'],
+  qte:['Jato na cara! Desvie!','A conexão escapou! Segure!','Escorregou! Equilibre!'],
+  lose:'A cozinha virou piscina.',
+  steps:[
+   {tool:'lanterna',goal:'Está escuro aqui embaixo. Encontre o vazamento.'},
+   {tool:'chave',goal:'Feche o registro de água girando com força.',mash:6,mul:.3},
+   {tool:'pano',goal:'Seque a rosca do cano para a vedação aderir.'},
+   {tool:'fita',goal:'Envolva a rosca para vedar a conexão.'},
+   {tool:'chave',goal:'Aperte a conexão de volta no lugar.',mash:5}
+  ],draw:drawCano,onDmg:(el,d)=>{el.setAttribute('rx',8+d*1.35);el.setAttribute('ry',3+d*.12)}},
+
+ {id:'tomada',ico:'⚡',name:'Tomada em curto',meter:'Risco de incêndio',rate:4.6,
+  desc:'A tomada do quarto está soltando faíscas e cheiro de queimado. Pense bem antes de encostar em qualquer coisa.',
+  tools:['fenda','tomada','disjuntor','fita','martelo','pano','luvas','lanterna'],
+  qte:['O gato subiu na escada! Segure!','Faísca! Recue!','Fio solto! Afaste a mão!'],
+  lose:'A fumaça tomou conta do quarto.',
+  steps:[
+   {tool:'disjuntor',goal:'Tem energia passando aqui. O que fazer antes de tudo?',mul:.35,
+    danger:{fenda:'CHOQUE! Desligue a energia antes.',tomada:'CHOQUE! Desligue a energia antes.',pano:'Pano em faísca? Quase pegou fogo!'}},
+   {tool:'fenda',goal:'Solte os parafusos e tire o espelho da tomada.',mash:4},
+   {tool:'tomada',goal:'Troque o módulo queimado por um novo.'},
+   {tool:'fenda',goal:'Prenda tudo de volta com firmeza.',mash:4},
+   {tool:'disjuntor',goal:'Hora de testar: devolva a energia.'}
+  ],draw:drawTomada,onDmg:(el,d)=>{el.setAttribute('opacity',Math.min(.95,d/100))}}
+];
+
+/* ---------- cenas SVG ---------- */
+function rnd(a,b){return a+Math.random()*(b-a)}
+function drawJanela(s){
+  let rain='';for(let k=0;k<16;k++){const x=rnd(98,202),y=rnd(20,100);rain+=`<line x1="${x}" y1="${y}" x2="${x-3}" y2="${y+11}" style="animation-delay:-${rnd(0,.55).toFixed(2)}s"/>`}
+  let g=`<rect width="300" height="200" fill="#e8dcc6"/>
+  <rect x="0" y="0" width="300" height="10" fill="#d9caaf"/>
+  <rect y="165" width="300" height="35" fill="#9c6f4a"/>
+  <line x1="0" y1="165" x2="300" y2="165" stroke="#7a5536" stroke-width="3"/>
+  <ellipse id="dmg" cx="150" cy="182" rx="0" ry="0" fill="#4aa3ff" opacity=".75"/>
+  <defs><clipPath id="win"><rect x="95" y="28" width="110" height="95"/></clipPath></defs>
+  <rect x="95" y="28" width="110" height="95" fill="#45506d"/>
+  <path d="M95 110 Q130 95 160 105 T205 98 V123 H95Z" fill="#2f3a52"/>
+  <g clip-path="url(#win)" class="rain" stroke="#a8c8ff" stroke-width="1.6" stroke-linecap="round">${rain}</g>`;
+  if(s<2) g+=`<g fill="#d7ecff" opacity=".9" stroke="#fff" stroke-width=".8">
+    <polygon points="99,32 134,32 112,60"/><polygon points="201,32 172,32 196,70"/>
+    <polygon points="99,119 99,88 124,119"/><polygon points="201,119 180,119 201,96"/></g>
+    <g stroke="#fff" stroke-width="1" opacity=".7"><line x1="112" y1="60" x2="128" y2="74"/><line x1="196" y1="70" x2="183" y2="80"/></g>`;
+  if(s<4) g+=`<g fill="#4aa3ff">${[120,150,180].map((x,k)=>`<circle class="drip" cx="${x}" cy="130" r="3" style="animation-delay:${k*.33}s"/>`).join('')}</g>`;
+  if(s===3) g+=`<g stroke="#ffd34d" stroke-width="2"><line x1="101" y1="76" x2="199" y2="76" stroke-dasharray="5 3"/><line x1="101" y1="70" x2="101" y2="82"/><line x1="199" y1="70" x2="199" y2="82"/></g>
+    <rect x="128" y="62" width="44" height="14" rx="3" fill="#ffd34d"/><text x="150" y="73" font-size="10" font-weight="700" text-anchor="middle" fill="#3a2a00">110 cm</text>`;
+  if(s>=4) g+=`<rect x="95" y="28" width="110" height="95" fill="#bfe3ff" opacity=".35"/><line x1="110" y1="110" x2="150" y2="40" stroke="#fff" stroke-width="4" opacity=".45"/><line x1="125" y1="112" x2="160" y2="52" stroke="#fff" stroke-width="2" opacity=".35"/>`;
+  g+=`<rect x="95" y="28" width="110" height="95" fill="none" stroke="#6b4a2b" stroke-width="8"/>
+  <rect x="86" y="123" width="128" height="8" rx="2" fill="#5a3d22"/>`;
+  if(s>=5) g+=`<rect x="99" y="32" width="102" height="87" fill="none" stroke="#5fd39a" stroke-width="3"/>`;
+  if(s>=1) g+=`<path d="M128 142 L172 142 L166 170 L134 170 Z" fill="#e05a47"/><rect x="125" y="138" width="50" height="6" rx="3" fill="#b94232"/><ellipse cx="150" cy="141" rx="21" ry="2.5" fill="#4aa3ff"/>`;
+  return g;
+}
+function drawCano(s){
+  let g=`<rect width="300" height="200" fill="#3a3247"/>
+  <g stroke="#2f283b" stroke-width="2">${[40,90,140,190,240].map(x=>`<line x1="${x}" y1="0" x2="${x}" y2="170"/>`).join('')}</g>
+  <rect y="170" width="300" height="30" fill="#2a2433"/>
+  <ellipse id="dmg" cx="160" cy="184" rx="0" ry="0" fill="#4aa3ff" opacity=".7"/>
+  <rect x="140" y="0" width="20" height="100" fill="#c9ced6"/>
+  <rect x="140" y="82" width="160" height="20" fill="#c9ced6"/>
+  <rect x="144" y="0" width="4" height="100" fill="#e9edf2"/>
+  <rect x="134" y="58" width="32" height="18" rx="3" fill="#9aa3ad"/>
+  <rect x="60" y="90" width="14" height="80" fill="#b8bec7"/>
+  <g transform="rotate(${s>=2?90:0} 67 112)"><circle cx="67" cy="112" r="15" fill="none" stroke="#e05a47" stroke-width="5"/><line x1="52" y1="112" x2="82" y2="112" stroke="#e05a47" stroke-width="4"/><line x1="67" y1="97" x2="67" y2="127" stroke="#e05a47" stroke-width="4"/></g>
+  <text x="67" y="150" font-size="9" fill="#9b93b0" text-anchor="middle">registro</text>`;
+  if(s<2) g+=`<g class="spray" stroke="#7cc0ff" stroke-width="3" fill="none" stroke-linecap="round">
+    <path d="M166 64 Q200 50 235 70"/><path d="M166 68 Q210 70 240 105"/><path d="M166 72 Q195 95 205 140"/><path d="M134 66 Q105 60 90 80"/></g>`;
+  if(s<3) g+=`<g fill="#7cc0ff">${[140,150,160].map((x,k)=>`<circle class="drip" cx="${x}" cy="80" r="2.6" style="animation-delay:${k*.3}s"/>`).join('')}</g>`;
+  if(s>=4) g+=`<g stroke="#fff" stroke-width="2.2" opacity=".95">${[0,7,14,21,28].map(o=>`<line x1="${136+o}" y1="75" x2="${142+o}" y2="59"/>`).join('')}</g>`;
+  if(s>=5) g+=`<rect x="130" y="54" width="40" height="26" rx="5" fill="none" stroke="#5fd39a" stroke-width="3"/>`;
+  if(s<1) g+=`<rect width="300" height="200" fill="#000" opacity=".86"/><text x="150" y="104" font-size="12" fill="#777" text-anchor="middle">Está escuro aqui embaixo… só se ouve a água.</text>`;
+  return g;
+}
+function drawTomada(s){
+  const powerOn=s===0||s>=5, coverOn=s<2||s>=4, burnt=s<3;
+  let g=`<rect width="300" height="200" fill="#dde5ee"/><rect y="176" width="300" height="24" fill="#c3ccd6"/>
+  <line x1="50" y1="0" x2="50" y2="28" stroke="#555" stroke-width="2"/><rect x="44" y="24" width="12" height="7" fill="#777"/>`;
+  if(s>=5) g+=`<circle cx="50" cy="42" r="32" fill="#ffe27a" opacity=".35"/><circle cx="50" cy="42" r="12" fill="#ffe27a"/>`;
+  else if(s===0) g+=`<circle class="flick" cx="50" cy="42" r="12" fill="#fff3b0"/>`;
+  else g+=`<circle cx="50" cy="42" r="12" fill="#b9c0c8"/>`;
+  g+=`<rect x="230" y="36" width="48" height="66" rx="5" fill="#8d99a6"/><text x="254" y="50" font-size="9" fill="#fff" text-anchor="middle" font-weight="700">QUADRO</text>
+  <rect x="244" y="56" width="20" height="34" rx="3" fill="#5c6670"/><rect x="247" y="${powerOn?58:72}" width="14" height="16" rx="2" fill="#222"/>
+  <circle cx="254" cy="96" r="3" fill="${powerOn?'#5fd39a':'#ff6b6b'}"/>
+  <rect x="112" y="58" width="76" height="96" rx="9" fill="${coverOn?'#fafafa':'#cfd6de'}" stroke="#bcc5cf" stroke-width="2"/>`;
+  if(!coverOn){
+    g+=`<rect x="122" y="68" width="56" height="76" rx="3" fill="#4a4f57"/>
+    <path d="M126 140 Q135 120 140 110" stroke="#e05a47" stroke-width="3" fill="none"/><path d="M174 140 Q165 120 160 110" stroke="#4a8cff" stroke-width="3" fill="none"/><path d="M150 144 L150 128" stroke="#5fd39a" stroke-width="3"/>
+    <rect x="133" y="80" width="34" height="48" rx="4" fill="${burnt?'#4b3a30':'#fff'}"/>`;
+    g+=`<circle cx="144" cy="98" r="3.5" fill="#333"/><circle cx="156" cy="98" r="3.5" fill="#333"/><circle cx="150" cy="112" r="3.5" fill="#333"/>`;
+    if(burnt) g+=`<ellipse cx="150" cy="100" rx="14" ry="18" fill="#1d130d" opacity=".55"/>`;
+  }else{
+    g+=`<rect x="130" y="78" width="40" height="56" rx="6" fill="#f0f0f0" stroke="#d5dbe1"/><circle cx="143" cy="98" r="4" fill="#333"/><circle cx="157" cy="98" r="4" fill="#333"/><circle cx="150" cy="115" r="4" fill="#333"/>
+    <circle cx="150" cy="66" r="2.5" fill="#aaa"/><circle cx="150" cy="146" r="2.5" fill="#aaa"/>`;
+    if(burnt) g+=`<ellipse cx="150" cy="102" rx="26" ry="32" fill="#3a2a20" opacity=".5"/>`;
+  }
+  if(s<1) g+=`<g class="spark" stroke="#ffd34d" stroke-width="2.5" fill="none" stroke-linecap="round"><polyline points="170,92 182,86 178,96 192,90"/><polyline points="128,118 116,124 122,114 108,118"/><polyline points="160,74 166,62 170,70"/></g>`;
+  g+=`<g id="dmg" class="smoke" fill="#555" opacity="0"><circle cx="140" cy="54" r="10"/><circle cx="158" cy="46" r="13" style="animation-delay:-.7s"/><circle cx="148" cy="34" r="9" style="animation-delay:-1.4s"/></g>`;
+  return g;
+}
+
+/* ---------- áudio e utilidades ---------- */
+let AC=null;
+function beep(f=440,d=.08,type='square',v=.05){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),gn=AC.createGain();o.type=type;o.frequency.value=f;gn.gain.value=v;o.connect(gn);gn.connect(AC.destination);o.start();gn.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+d);o.stop(AC.currentTime+d)}catch(e){}}
+function vib(p){try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}}
+const $=id=>document.getElementById(id);
+function getBest(){try{return JSON.parse(localStorage.getItem('consertaJa')||'{}')}catch(e){return {}}}
+function setBest(id,st){try{const b=getBest();if(!b[id]||b[id]<st){b[id]=st;localStorage.setItem('consertaJa',JSON.stringify(b))}}catch(e){}}
+const starStr=n=>'★'.repeat(n)+'☆'.repeat(3-n);
+function show(id){document.querySelectorAll('.screen').forEach(e=>e.classList.toggle('on',e.id===id))}
+let toastT;
+function toast(msg,cls=''){const t=$('toast');t.textContent=msg;t.className='toast on '+cls;clearTimeout(toastT);toastT=setTimeout(()=>t.className='toast',1300)}
+function shake(){const s=$('scene');s.classList.remove('shake');void s.offsetWidth;s.classList.add('shake')}
+function modal(html){$('modalBox').innerHTML=html;$('modal').classList.add('on')}
+function closeModal(){$('modal').classList.remove('on')}
+
+/* ---------- menu ---------- */
+function renderMenu(){
+  const b=getBest();
+  $('levels').innerHTML=LEVELS.map((L,i)=>`<button class="lvl" data-i="${i}"><span class="ico">${L.ico}</span><span><b>${i+1}. ${L.name}</b><small>${L.steps.length} etapas · ${L.meter}</small></span><span class="st">${b[L.id]?starStr(b[L.id]):'NOVO'}</span></button>`).join('');
+  document.querySelectorAll('.lvl').forEach(el=>el.onclick=()=>start(+el.dataset.i));
+}
+
+/* ---------- jogo ---------- */
+let S=null;
+function start(i){
+  const L=LEVELS[i];
+  S={i,L,s:0,d:0,mul:1,err:0,miss:0,mash:0,armed:false,t:0,qte:null,nextQte:rnd(5,8),run:false,done:false};
+  $('lvName').textContent=L.name;$('meterName').textContent=L.meter;
+  show('game');renderTools();renderScene();renderStep();hud();
+  modal(`<div class="big">${L.ico}</div><h2>${L.name}</h2><p>${L.desc}</p><button class="btn p" id="go">Começar</button><button class="btn s" id="mn">Voltar</button>`);
+  $('go').onclick=()=>{closeModal();beep(660,.1,'triangle');S.run=true;loop(S)};
+  $('mn').onclick=()=>{closeModal();S=null;renderMenu();show('menu')};
+}
+function renderTools(){
+  const ids=[...S.L.tools].sort(()=>Math.random()-.5);
+  $('tools').innerHTML=ids.map(id=>`<button class="tool" data-id="${id}"><span class="e">${TOOLS[id][0]}</span><span class="t">${TOOLS[id][1]}</span></button>`).join('');
+  document.querySelectorAll('.tool').forEach(el=>el.onclick=()=>useTool(el.dataset.id,el));
+}
+function renderScene(){
+  $('svgWrap').innerHTML=`<svg viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg">${S.L.draw(S.s)}</svg>`;
+  S.dmgEl=$('svgWrap').querySelector('#dmg');
+}
+function renderStep(){
+  const st=S.L.steps[S.s];if(!st)return;
+  let h=`<div class="n">Etapa ${S.s+1}/${S.L.steps.length}</div><div class="g">${st.goal}</div>`;
+  if(S.armed) h+=`<div class="mash">Toque na cena repetidamente! ${S.mash}/${st.mash}<div class="bar" style="margin-top:4px;height:8px"><i style="width:${S.mash/st.mash*100}%"></i></div></div>`;
+  $('step').innerHTML=h;
+  $('scene').classList.toggle('armed',S.armed);
+  document.querySelectorAll('.tool').forEach(el=>el.classList.toggle('sel',S.armed&&el.dataset.id===st.tool));
+}
+function hud(){
+  const d=Math.min(100,S.d);
+  $('meterPct').textContent=Math.round(d)+'%';
+  const f=$('meterFill');f.style.width=d+'%';f.style.background=d<40?'var(--ok)':d<70?'var(--acc)':'var(--bad)';
+  const t=Math.floor(S.t);$('time').textContent=Math.floor(t/60)+':'+String(t%60).padStart(2,'0');
+  if(S.dmgEl)S.L.onDmg(S.dmgEl,d);
+}
+function loop(state){
+  let last=performance.now();
+  function f(now){
+    if(S!==state||state.done)return;
+    const dt=Math.min(.05,(now-last)/1000);last=now;
+    if(state.run){
+      state.t+=dt;state.d+=state.L.rate*state.mul*dt;
+      if(!state.qte){state.nextQte-=dt;if(state.nextQte<=0)spawnQte()}
+      else{state.qte.left-=dt;if(state.qte.left<=0)missQte()}
+      if(state.d>=100){state.d=100;hud();return lose()}
+      hud();
+    }
+    requestAnimationFrame(f);
+  }
+  requestAnimationFrame(f);
+}
+function useTool(id,el){
+  if(!S||!S.run)return;
+  const st=S.L.steps[S.s];
+  if(S.armed){ if(id!==st.tool) toast('Termine o que começou: toque na cena','bad'); return; }
+  if(id===st.tool){
+    beep(880,.07,'triangle');
+    if(st.mash){S.armed=true;S.mash=0;renderStep();toast(TOOLS[id][0]+' Agora toque na cena!','ok')}
+    else advance();
+    return;
+  }
+  el.classList.add('no');setTimeout(()=>el.classList.remove('no'),400);
+  shake();S.err++;
+  if(st.danger&&st.danger[id]){S.d+=25;vib([80,40,180]);beep(110,.35,'sawtooth',.08);toast('⚠️ '+st.danger[id],'bad')}
+  else{S.d+=8;vib(90);beep(160,.15,'sawtooth');toast('Não é hora disso (+8 de dano)','bad')}
+}
+$('scene').addEventListener('pointerdown',e=>{
+  if(!S||!S.run||e.target.closest('.qte'))return;
+  const st=S.L.steps[S.s];
+  if(!S.armed){if(st&&st.mash)toast('Escolha a ferramenta primeiro');return}
+  S.mash++;beep(300+S.mash*60,.05,'square',.04);vib(15);
+  const r=$('scene').getBoundingClientRect(),p=document.createElement('div');
+  p.className='pop';p.textContent=['toc!','tac!','crec!','zip!'][S.mash%4];
+  p.style.left=(e.clientX-r.left-15)+'px';p.style.top=(e.clientY-r.top-20)+'px';
+  $('scene').appendChild(p);setTimeout(()=>p.remove(),500);
+  if(S.mash>=st.mash)advance();else renderStep();
+});
+function advance(){
+  const st=S.L.steps[S.s];
+  if(st.mul!=null)S.mul=st.mul;
+  S.s++;S.armed=false;S.mash=0;
+  renderScene();hud();
+  if(S.s>=S.L.steps.length)return win();
+  toast('✓ Etapa concluída','ok');renderStep();
+}
+function spawnQte(){
+  if(S.s>=S.L.steps.length)return;
+  const dur=Math.max(1.3,2-S.i*.2);
+  S.qte={left:dur};
+  const b=document.createElement('button');b.className='qte';
+  b.innerHTML=S.L.qte[Math.floor(Math.random()*S.L.qte.length)]+`<span class="ring" style="animation-duration:${dur}s"></span>`;
+  b.style.left=rnd(30,70)+'%';b.style.top=rnd(25,75)+'%';
+  b.addEventListener('pointerdown',e=>{e.stopPropagation();if(!S||!S.qte)return;S.qte=null;b.remove();S.nextQte=rnd(6,10);S.d=Math.max(0,S.d-3);beep(1046,.12,'triangle');toast('Reflexo perfeito! (-3)','ok')});
+  $('scene').appendChild(b);S.qteEl=b;beep(520,.1,'square');vib(40);
+}
+function missQte(){
+  if(S.qteEl)S.qteEl.remove();S.qte=null;S.miss++;S.d+=12;S.nextQte=rnd(6,10);
+  shake();vib([60,30,60]);beep(130,.25,'sawtooth');toast('Lento demais! (+12 de dano)','bad');
+}
+function clearQte(){if(S&&S.qteEl)S.qteEl.remove();if(S)S.qte=null}
+function stats(){const t=Math.floor(S.t);return `<div class="stats"><div><b>${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}</b>tempo</div><div><b>${Math.round(S.d)}%</b>${S.L.meter.toLowerCase()}</div><div><b>${S.err}</b>ferramentas erradas</div><div><b>${S.miss}</b>reflexos perdidos</div></div>`}
+function win(){
+  S.done=true;S.run=false;clearQte();
+  const score=Math.max(0,Math.round(100-S.d*.6-S.err*8-S.miss*6));
+  const stars=score>=75?3:score>=45?2:1;setBest(S.L.id,stars);
+  [660,880,1046].forEach((f,k)=>setTimeout(()=>beep(f,.15,'triangle',.06),k*120));
+  const next=S.i+1<LEVELS.length;
+  setTimeout(()=>{modal(`<div class="big">🛠️</div><h2>Consertado!</h2><div class="stars">${starStr(stars)}</div>${stats()}
+   ${next?'<button class="btn p" id="nx">Próxima fase</button>':''}<button class="btn ${next?'s':'p'}" id="rt">Jogar de novo</button><button class="btn s" id="mn">Menu</button>`);
+   if(next)$('nx').onclick=()=>{closeModal();start(S.i+1)};
+   $('rt').onclick=()=>{closeModal();start(S.i)};$('mn').onclick=()=>{closeModal();S=null;renderMenu();show('menu')};},500);
+}
+function lose(){
+  S.done=true;S.run=false;clearQte();vib([200,80,200]);beep(98,.5,'sawtooth',.08);
+  modal(`<div class="big">💥</div><h2>Não deu tempo</h2><p>${S.L.lose} Você parou na etapa ${S.s+1} de ${S.L.steps.length}.</p>${stats()}
+   <button class="btn p" id="rt">Tentar de novo</button><button class="btn s" id="mn">Menu</button>`);
+  $('rt').onclick=()=>{closeModal();start(S.i)};$('mn').onclick=()=>{closeModal();S=null;renderMenu();show('menu')};
+}
+$('btnBack').onclick=()=>{if(S){S.done=true;clearQte()}S=null;renderMenu();show('menu')};
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&S&&S.run&&!S.done){S.run=false;modal(`<h2>Pausado</h2><button class="btn p" id="rs">Continuar</button>`);$('rs').onclick=()=>{closeModal();if(S)S.run=true}}});
+renderMenu();
+</script>
+</body>
+</html>
